@@ -1,0 +1,199 @@
+{
+  "project_name": "AkademiAI - Üniversiteye Hazırlık ve Seviye Odaklı Akıllı Öğrenme Platformu",
+  "archetype": "ARCHETYPE 1 + ARCHETYPE 4 HYBRID (Calm Scholarly Precision + High-Legibility Swiss Editorial)",
+  "emotional_tone": "Grounded, academic confidence, focused clarity, motivating without tech overwhelm (warm stone, deep navy/slate, terracotta accent, paper texture feel)",
+  "target_audience": "YKS (TYT/AYT) öğrencileri, rehber öğretmenler ve okul/kurs yöneticileri",
+  "theme_strategy": {
+    "default_theme": "light",
+    "theme_support": "light with rich dark mode tokens",
+    "rationale": "Exam prep and deep reading require daylight paper-like contrast with zero eye strain; dark mode offers deep obsidian focus mode for late-night study sessions."
+  },
+  "typography": {
+    "heading_font": "Plus Jakarta Sans / Sora (installed) with fallback to Manrope",
+    "body_font": "Geist Variable, sans-serif",
+    "mono_font": "JetBrains Mono / Geist Mono",
+    "anti_default_rule": "Inter is strictly prohibited for main headings and subheadings. Never use generic centered titles.",
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 dark:text-slate-100",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-slate-900 dark:text-slate-100",
+      "h3": "text-xl sm:text-2xl font-semibold tracking-normal text-slate-800 dark:text-slate-200",
+      "h4": "text-lg sm:text-xl font-medium text-slate-800 dark:text-slate-200",
+      "body": "text-base leading-relaxed text-slate-600 dark:text-slate-300",
+      "caption": "text-xs font-semibold tracking-wider uppercase text-slate-500 dark:text-slate-400"
+    }
+  },
+  "color_palette": {
+    "primary": {
+      "hex": "#1E293B",
+      "tailwind": "bg-slate-900 text-white hover:bg-slate-800",
+      "description": "Deep academic slate - authoritative, stable anchor"
+    },
+    "brand_accent": {
+      "hex": "#D97706",
+      "terracotta": "#EA580C",
+      "tailwind": "bg-amber-600 text-white hover:bg-amber-700",
+      "description": "Warm terracotta & amber accent for high-priority CTA, mastery alerts, and focus timer"
+    },
+    "background_base": {
+      "light": "#F8FAFC",
+      "light_card": "#FFFFFF",
+      "light_border": "#E2E8F0",
+      "dark": "#0B0F17",
+      "dark_card": "#131B29",
+      "dark_border": "rgba(255, 255, 255, 0.08)"
+    },
+    "status_indicators": {
+      "success_mastered": "#16A34A",
+      "warning_review": "#D97706",
+      "critical_gap": "#DC2626",
+      "info_ai": "#2563EB"
+    },
+    "forbidden_colors": [
+      "#7351B7",
+      "#1B93A4"
+    ]
+  },
+  "navigation_and_header": {
+    "style": "Sticky top bar with Crystal Glassmorphism",
+    "classes": "sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-950/80 border-b border-slate-200/80 dark:border-slate-800",
+    "desktop_visible_links": [
+      { "id": "nav-diagnostic", "label": "Seviye Belirleme Testi", "target": "diagnostic" },
+      { "id": "nav-analytics", "label": "Deneme & Puan Analizi", "target": "analytics" },
+      { "id": "nav-recommendations", "label": "Kişisel Müfredat", "target": "recommendations" },
+      { "id": "nav-ai-tutor", "label": "Sokratik AI Asistan", "target": "chatbot" },
+      { "id": "nav-portals", "label": "Öğretmen & Yönetici Paneli", "target": "portals" }
+    ],
+    "header_actions": [
+      { "role_selector": "Role Switcher (Öğrenci / Öğretmen / Yönetici)", "data_testid": "role-selector-dropdown" },
+      { "primary_cta": "Testi Başlat / Devam Et", "data_testid": "nav-start-assessment-btn" }
+    ]
+  },
+  "layout_and_grids": {
+    "bento_strategy": "Tetris Mode A for Student Dashboard + High Density Mode B for Teacher/Admin",
+    "spacing_scale": "p-6 md:p-8 lg:p-10 with gap-6 md:gap-8",
+    "dashboard_grid": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-6",
+    "hero_span": "col-span-full lg:col-span-8",
+    "tutor_aside_span": "col-span-full lg:col-span-4",
+    "metric_cards_grid": "grid grid-cols-2 md:grid-cols-4 gap-4",
+    "container_rule": "Every container with borders has at least p-6 internal padding to prevent collision."
+  },
+  "key_features_and_modules": {
+    "module_1_level_test": {
+      "title": "TYT-AYT Çok Boyutlu Seviye Belirleme Sınavı",
+      "data_testid": "diagnostic-test-container",
+      "subcomponents": [
+        "Branş seçici (Matematik, Fizik, Türkçe, Biyoloji, Kimya)",
+        "Soru kartı (Zorluk seviyesi etiketi, süre sayacı, formül açılır paneli, 'Emin değilim/Boş' opsiyonu)",
+        "Net/Puan hesaplama kuralları simülasyonu (4 Yanlış 1 Doğruyu Götürür kuralı)",
+        "Canlı ilerleme çubuğu ve soru haritası matrisi"
+      ]
+    },
+    "module_2_results_and_charts": {
+      "title": "Grafiksel Performans & Net Karnesi",
+      "data_testid": "analytics-charts-section",
+      "chart_types": [
+        "Recharts RadarChart: 5 Temel Branş Seviye Dağılımı (Başlangıç vs Hedef Üniversite)",
+        "Recharts BarChart: Konu Bazlı Doğru/Yanlış/Boş Analizi (Örn: Türev, Paragraf, Optik)",
+        "Recharts Area/LineChart: Son 6 Deneme Net Gelişim Trendi",
+        "TYT Tahmini Puan Göstergesi (Örn: 418.50 Puan - %3 Dilim)"
+      ]
+    },
+    "module_3_smart_recommendations": {
+      "title": "Yapay Zeka Destekli Kişiselleştirilmiş Öneri & Çalışma Planı",
+      "data_testid": "recommendations-engine-container",
+      "cards": [
+        {
+          "tag": "Öncelikli Eksik Kapatma",
+          "subject": "Matematik - Fonksiyonlarda Öteleme & Bileşke",
+          "estimated_net_gain": "+2.25 Net Artışı",
+          "recommended_action": "15 dk mikro video anlatımı + 8 adet seviye 2 pekiştirme sorusu"
+        },
+        {
+          "tag": "Sınav Stratejisi",
+          "subject": "Türkçe - Paragrafta Hız & Süre Yönetimi",
+          "estimated_net_gain": "+3.00 Net Artışı",
+          "recommended_action": "Süre kısıtlı 20 soruluk tempo testi"
+        },
+        {
+          "tag": "Tam Pekiştirilmiş Konu",
+          "subject": "Fizik - Vektörler & Bağıl Hareket",
+          "estimated_net_gain": "Kazanım Koruma",
+          "recommended_action": "Haftalık 5 soruluk tarama testi"
+        }
+      ]
+    },
+    "module_4_ai_socratic_tutor": {
+      "title": "Sokratik AI Sınav & Konu Asistanı",
+      "data_testid": "ai-tutor-interactive-box",
+      "capabilities": [
+        "Adım adım ipucu verme (direkt cevabı söylemeyip öğrenciye düşündürme)",
+        "YKS soru formatında benzer örnek üretme",
+        "Öğrencinin yanlış yaptığı soruyu analiz edip hata kök nedenini söyleme",
+        "Hızlı soru şablonları: 'Bu soruyu basitleştir', 'İkinci bir yol göster', 'Nerede işlem hatası yaptım?'"
+      ]
+    },
+    "module_5_teacher_classroom_panel": {
+      "title": "Öğretmen Deneme Takip & Canlı Classroom Görünümü",
+      "data_testid": "teacher-panel-view",
+      "capabilities": [
+        "Sınıf geneli en çok yanlış yapılan ilk 3 soru analizi",
+        "Bireysel öğrenciye anlık ödev ve konu anlatımı atama",
+        "Canlı etüt/soru çözüm odası başlatma simülatörü"
+      ]
+    },
+    "module_6_admin_panel": {
+      "title": "Yönetici & Müfredat Yönetim Paneli",
+      "data_testid": "admin-panel-view",
+      "capabilities": [
+        "Soru havuzu kazanım dağılımı (ÖSYM standardı kontrolü)",
+        "Öğrenci aktiflik ve haftalık ortalama deneme çözme oranı",
+        "Rol bazlı yetkilendirme (Öğrenci, Öğretmen, Rehberlikçi, Admin)"
+      ]
+    }
+  },
+  "resilience_and_offline_strategy": {
+    "offline_resilient_mock_data": true,
+    "strategy": "Tüm test akışı, grafik verileri, öneri motoru ve chatbot yanıtları hem API hazır olduğunda canlı backend'e bağlanacak hem de backend henüz ayakta değilken kusursuz mock state ile sıfır kesintiyle çalışacaktır.",
+    "network_badge": "Sistem Durumu: Çevrimdışı/Yerel Simülasyon Aktif (FastAPI Entegrasyonuna Hazır)"
+  },
+  "images": [
+    {
+      "category": "hero_student_focus",
+      "url": "https://images.unsplash.com/photo-1604872441539-ef1db9b25f92?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwzfHxzdHVkZW50JTIwc3R1ZHlpbmclMjBsaWJyYXJ5JTIwZXhhbXxlbnwwfHx8fDE3OTIzOTA3Mzh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Öğrencinin ders notları ve bilgisayar başında odaklanarak deneme çözdüğü gerçekçi çalışma ortamı",
+      "suggested_placement": "Hero karşılama bannerı veya Seviye Testi başlangıç görseli"
+    },
+    {
+      "category": "classroom_teacher_mentorship",
+      "url": "https://images.unsplash.com/photo-1577896851231-70ef18881754?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHx0ZWFjaGVyJTIwY2xhc3Nyb29tJTIwdHV0b3Jpbmd8ZW58MHx8fHwxNzkyMzkwNzM4fDA&ixlib=rb-4.1.0&q=85",
+      "description": "Öğretmenin sınıf ortamında deneme analizi yaptığı etkileşimli rehberlik sahnesi",
+      "suggested_placement": "Öğretmen paneli ve Classroom ders sekmesinde önizleme bannerı"
+    },
+    {
+      "category": "university_goal_campus",
+      "url": "https://images.unsplash.com/photo-1591123120675-6f7f1aae0e5b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODl8MHwxfHNlYXJjaHwxfHxlZHVjYXRpb24lMjBncmFkdWF0aW9uJTIwdW5pdmVyc2l0eSUyMGNhbXB1c3xlbnwwfHx8fDE3OTIzOTA3NDh8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Üniversite kampüsü ve akademik hedef vizyonunu simgeleyen mimari görsel",
+      "suggested_placement": "Hedef Üniversite (Örn: Boğaziçi / ODTÜ / İTÜ) Puan Karşılaştırma kartında fon"
+    }
+  ],
+  "motion_and_interactions": {
+    "engine": "tw-animate-css + Tailwind transitions",
+    "rules": [
+      "Hover transitions on interactive cards: transform hover:-translate-y-1 transition duration-200 ease-out",
+      "Test answer radio options: instant pulse ring with border-amber-600 on active selection",
+      "Chatbot message streaming skeleton: subtle pulse indicator while thinking",
+      "Respect prefers-reduced-motion: motion-reduce:transform-none motion-reduce:transition-none"
+    ]
+  },
+  "testing_attributes": {
+    "rule": "Every button, input, navigation trigger, tab switch, chart wrapper, and feedback element MUST carry a descriptive data-testid attribute in kebab-case format."
+  },
+  "instructions_to_main_agent": [
+    "Uygulamayı tek bir monolitik sayfada sıkıştırma; temiz sekmeli (Öğrenci Akışı, Seviye Testi, Grafik & Karneler, AI Koç, Öğretmen/Admin) ve rol geçişli modüler bir mimari kur.",
+    "Tüm etkileşimli bileşenlerde `data-testid` değerlerini eksiksiz sağla.",
+    "FastAPI backend henüz çalışmasa bile öğrencinin test çözebilmesini, soruları yanıtlayıp anında grafiksel karnesini görebilmesini sağlayan zengin yerel state/mock motorunu hazır tut.",
+    "Recharts bileşenlerini (Radar, Bar, Line) Türkçe terimlerle (TYT Net, Hedef Puan, Kazanım Oranı) donat.",
+    "Chatbot arayüzünde öğrenciye hazır butonlar sun: 'Matematik 3. soru için ipucu ver', 'Türev kurallarını özetle', 'Bana 1 benzer soru üret'.",
+    "Sayfa üstünde şeffaf arka plan kullanma; her zaman blur veya opak dolgu ile kontrastı güvenceye al."
+  ]
+}
