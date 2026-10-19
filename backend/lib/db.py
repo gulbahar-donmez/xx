@@ -19,7 +19,14 @@ logger = logging.getLogger(__name__)
 # One entry per collection: every field a route filters, sorts, or dedupes on. Applied by ensure_indexes() at startup.
 INDEXES: dict[str, list[IndexModel]] = {
     "status_checks": [IndexModel([("timestamp", DESCENDING)], name="timestamp_desc")],
-    "assessment_results": [IndexModel([("completed_at", DESCENDING)], name="completed_at_desc")],
+    "users": [IndexModel([("id", ASCENDING)], name="id", unique=True), IndexModel([("email", ASCENDING)], name="email", unique=True), IndexModel([("role", ASCENDING), ("points", DESCENDING)], name="role_points")],
+    "placement_results": [IndexModel([("user_id", ASCENDING), ("completed_at", DESCENDING)], name="user_completed")],
+    "practice_attempts": [IndexModel([("user_id", ASCENDING), ("question_id", ASCENDING)], name="user_question")],
+    "pomodoros": [IndexModel([("user_id", ASCENDING), ("day", ASCENDING)], name="user_day")],
+    "assignments": [IndexModel([("id", ASCENDING)], name="id", unique=True), IndexModel([("assignee_ids", ASCENDING), ("due_date", ASCENDING)], name="assignee_due"), IndexModel([("teacher_id", ASCENDING), ("created_at", DESCENDING)], name="teacher_created")],
+    "classrooms": [IndexModel([("id", ASCENDING)], name="id", unique=True), IndexModel([("code", ASCENDING), ("status", ASCENDING)], name="code_status"), IndexModel([("participants.id", ASCENDING)], name="participants")],
+    "exam_results": [IndexModel([("user_id", ASCENDING), ("created_at", DESCENDING)], name="user_created")],
+    "posts": [IndexModel([("id", ASCENDING)], name="id", unique=True), IndexModel([("created_at", DESCENDING)], name="created_desc")],
     "chat_messages": [IndexModel([("session_id", ASCENDING), ("created_at", ASCENDING)], name="session_created")],
 }
 

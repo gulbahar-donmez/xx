@@ -47,6 +47,16 @@ export const apiPatch = <T>(path: string, body?: JsonBody) =>
   request<T>("PATCH", path, body ?? null);
 export const apiDelete = <T>(path: string) => request<T>("DELETE", path);
 
+// Multipart upload (exam files). The browser sets the multipart boundary header itself.
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { method: "POST", body: form });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => null);
+    throw new ApiError(res.status, errBody);
+  }
+  return (await res.json()) as T;
+}
+
 export async function apiStreamPost<T>(path: string, body: JsonBody, onEvent: StreamEventHandler<T>): Promise<void> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",

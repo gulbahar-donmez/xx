@@ -7,7 +7,6 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel
-from routers.academy import router as academy_router
 
 
 ROOT_DIR = Path(__file__).parent
@@ -55,5 +54,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-api_router.include_router(academy_router)
+from routers import auth, exams, learning, social, teaching  # noqa: E402
+
+for module in (auth, learning, teaching, exams, social):
+    api_router.include_router(module.router)
 app.include_router(api_router)

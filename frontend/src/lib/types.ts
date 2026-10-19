@@ -1,11 +1,36 @@
-export interface Question {
+// Hand-written mirrors of backend/models/academy.py — keep in sync with the Pydantic models.
+export type Role = "student" | "teacher" | "admin";
+
+export interface PublicUser {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  grade: string;
+  target: string;
+  class_name: string;
+  bio: string;
+  points: number;
+  placement_done: boolean;
+  overall_level: number;
+  subject_levels: Record<string, number>;
+  subject_scores: Record<string, number>;
+}
+
+export interface QuestionOut {
   id: string;
   subject: string;
   topic: string;
-  difficulty: string;
+  level: number;
+  context: string;
   prompt: string;
   options: string[];
-  correct_index: number;
+}
+
+export interface PlacementTest {
+  questions: QuestionOut[];
+  duration_minutes: number;
+  rule: string;
 }
 
 export interface SubjectScore {
@@ -14,25 +39,53 @@ export interface SubjectScore {
   correct: number;
   wrong: number;
   blank: number;
-  target: number;
+  level: number;
+  level_name: string;
 }
 
-export interface AssessmentResult {
+export interface QuestionReview {
+  question_id: string;
+  subject: string;
+  topic: string;
+  your_answer: number;
+  correct_index: number;
+  explanation: string;
+}
+
+export interface PlacementResult {
   id: string;
   score: number;
   net: number;
-  percentile: string;
+  overall_level: number;
+  level_name: string;
+  subjects: SubjectScore[];
   strengths: string[];
   gaps: string[];
-  subjects: SubjectScore[];
   message: string;
+  review: QuestionReview[];
+  points_awarded: number;
   completed_at: string;
 }
 
-export interface DashboardMetric {
+export interface PracticeSet {
+  subject: string;
+  level: number;
+  level_name: string;
+  questions: QuestionOut[];
+}
+
+export interface PracticeAnswerOut {
+  correct: boolean;
+  correct_index: number;
+  explanation: string;
+  points_awarded: number;
+  total_points: number;
+}
+
+export interface Metric {
   label: string;
   value: string;
-  change: string;
+  hint: string;
   tone: string;
 }
 
@@ -45,35 +98,211 @@ export interface Recommendation {
   gain: string;
   duration: string;
   tone: string;
+  level: number;
 }
 
-export interface DashboardData {
-  greeting: string;
-  streak: number;
-  weekly_goal: number;
-  weekly_progress: number;
-  metrics: DashboardMetric[];
+export interface TrendPoint {
+  name: string;
+  net: number;
+}
+
+export interface Dashboard {
+  user: PublicUser;
+  metrics: Metric[];
   subject_scores: SubjectScore[];
-  trend: { name: string; net: number }[];
+  trend: TrendPoint[];
   recommendations: Recommendation[];
-  next_session: { title: string; subtitle: string; time: string; progress: string };
+  pending_assignments: number;
+  today_pomodoros: number;
 }
 
-export interface ClassroomOverview {
-  active_students: number;
-  average_net: number;
-  pending_reviews: number;
-  live_room: { title: string; teacher: string; status: string };
-  common_mistakes: { topic: string; count: string; note: string }[];
-  students: { name: string; class: string; net: string; status: string }[];
+export interface Assignment {
+  id: string;
+  teacher_name: string;
+  title: string;
+  subject: string;
+  topic: string;
+  question_count: number;
+  due_date: string;
+  assignee_count: number;
+  completed_count: number;
+  target_all: boolean;
+  created_at: string;
+}
+
+export interface StudentAssignment {
+  id: string;
+  teacher_name: string;
+  title: string;
+  subject: string;
+  topic: string;
+  question_count: number;
+  due_date: string;
+  completed: boolean;
+}
+
+export interface AssignmentCompleteOut {
+  points_awarded: number;
+  total_points: number;
+}
+
+export interface StudentRow {
+  id: string;
+  name: string;
+  email: string;
+  class_name: string;
+  grade: string;
+  overall_level: number;
+  points: number;
+  placement_done: boolean;
+  last_net: number | null;
+}
+
+export interface Participant {
+  id: string;
+  name: string;
+  role: Role;
+  overall_level: number;
+}
+
+export interface ClassMessage {
+  id: string;
+  user_id: string;
+  user_name: string;
+  role: Role;
+  overall_level: number;
+  kind: "message" | "question";
+  text: string;
+  created_at: string;
+}
+
+export interface ClassroomSummary {
+  id: string;
+  title: string;
+  subject: string;
+  code: string;
+  teacher_name: string;
+  status: "active" | "ended";
+  participant_count: number;
+  created_at: string;
+}
+
+export interface ClassroomDetail extends ClassroomSummary {
+  video_url: string;
+  is_teacher: boolean;
+  participants: Participant[];
+  messages: ClassMessage[];
+}
+
+export interface ExamRow {
+  subject: string;
+  correct: number;
+  wrong: number;
+  blank: number;
+  net: number;
+  max_questions: number;
+  rate: number;
+  level: number;
+  advice: string;
+}
+
+export type ExamType = "TYT" | "AYT-SAY" | "AYT-EA" | "AYT-SOZ";
+
+export interface DistributionItem {
+  subject: string;
+  questions: number;
+  group: string;
+}
+
+export interface ExamDistribution {
+  exam_type: ExamType;
+  label: string;
+  total_questions: number;
+  duration_minutes: number;
+  items: DistributionItem[];
+}
+
+export interface ExamParse {
+  exam_type: ExamType;
+  source: string;
+  parsed: boolean;
+  message: string;
+  rows: ExamRow[];
+}
+
+export interface ExamResult {
+  id: string;
+  name: string;
+  exam_type: ExamType;
+  total_questions: number;
+  total_net: number;
+  estimated_score: number;
+  rows: ExamRow[];
+  weakest: string;
+  strongest: string;
+  advice: string[];
+  created_at: string;
+}
+
+export interface Author {
+  id: string;
+  name: string;
+  overall_level: number;
+  points: number;
+  role: Role;
+}
+
+export interface PostAnswer {
+  id: string;
+  author: Author;
+  text: string;
+  created_at: string;
+}
+
+export interface Post {
+  id: string;
+  author: Author;
+  subject: string;
+  text: string;
+  answers: PostAnswer[];
+  created_at: string;
+}
+
+export interface LeaderEntry {
+  id: string;
+  name: string;
+  points: number;
+  overall_level: number;
+  grade: string;
+}
+
+export interface PomodoroOut {
+  points_awarded: number;
+  total_points: number;
+  today_count: number;
+}
+
+export interface ProfileStats {
+  practice_solved: number;
+  practice_correct: number;
+  pomodoros: number;
+  focus_minutes: number;
+  posts: number;
+  answers: number;
+  assignments_done: number;
+  exams: number;
+}
+
+export interface Profile {
+  user: PublicUser;
+  stats: ProfileStats;
+  badges: string[];
+  rank: number;
 }
 
 export interface AdminOverview {
-  active_users: number;
-  weekly_completion: string;
-  question_bank: number;
-  role_breakdown: { role: string; value: string; percent: string }[];
-  system_notes: string[];
+  counts: Record<string, number>;
+  users: PublicUser[];
 }
 
 export interface ChatStreamEvent {
