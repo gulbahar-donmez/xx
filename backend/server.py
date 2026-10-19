@@ -56,8 +56,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from routers import auth, exams, learning, questions, social, teaching  # noqa: E402
+from routers import auth, exams, learning, mistakes, questions, social, teaching  # noqa: E402
 
-for module in (auth, learning, teaching, exams, social, questions):
+for module in (auth, learning, teaching, exams, social, questions, mistakes):
     api_router.include_router(module.router)
 app.include_router(api_router)

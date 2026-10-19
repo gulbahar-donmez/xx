@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { HeartHandshake, Medal as MedalIcon, Timer, Trophy } from "lucide-react";
+import { HeartHandshake, Medal as MedalIcon, Tent, Timer, Trophy } from "lucide-react";
 import { apiGet } from "@/lib/api";
 import type { League as LeagueData, Medal, PublicUser } from "@/lib/types";
 import { EmptyState, LevelIcon, PageHeader } from "@/components/common";
@@ -20,7 +20,7 @@ export default function League({ me }: { me: PublicUser }) {
 
   return (
     <div className="space-y-8" data-testid="league-view">
-      <PageHeader testId="league-header" eyebrow={`Haftalık lig · ${data?.week ?? ""}`} title="Odaklan, yardım et, madalyayı kap" description="Lig puanı yalnızca pomodoro (+25) ve arkadaşlarının sorularına verdiğin yanıtlardan (+15) gelir. Hafta bitince ilk 3'e altın, gümüş, bronz madalya ve profil çerçevesi verilir." action={
+      <PageHeader testId="league-header" eyebrow={`Haftalık lig · ${data?.week ?? ""}`} title="Odaklan, yardım et, madalyayı kap" description="Lig puanı yalnızca pomodoro (+25) ve arkadaşlarının sorularına verdiğin yanıtlardan (+15) ve 7 gün üst üste pomodoro yapınca kazanılan Kamp Ustası bonusundan (+100) gelir. Hafta bitince ilk 3'e altın, gümüş, bronz madalya ve profil çerçevesi verilir." action={
         <div className="flex rounded-xl border border-slate-200 bg-white p-1" data-testid="league-scope-switch">{([["class", "Sınıfım"], ["all", "Tüm platform"]] as const).map(([v, l]) => <button key={v} onClick={() => setScope(v)} className={`rounded-lg px-4 py-2 text-xs font-bold ${scope === v ? "bg-slate-900 text-white" : "text-slate-500"}`} data-testid={`league-scope-${v}`}>{l}</button>)}</div>
       } />
       {top.length > 0 && (
@@ -44,8 +44,8 @@ export default function League({ me }: { me: PublicUser }) {
           <CardContent className="overflow-x-auto p-6">
             <div className="mb-4 flex items-center gap-2 font-heading text-lg font-bold text-slate-900"><Trophy className="size-5 text-amber-500" /> {data?.scope_label ?? "Lig"}</div>
             {!data?.entries.length ? <EmptyState icon={Trophy} title="Bu hafta henüz puan yok" text="Bir pomodoro tamamla veya bir arkadaşının sorusunu yanıtla; lige ilk sen gir." testId="league-empty" /> : (
-              <table className="w-full min-w-[520px] text-left text-sm"><thead className="text-xs font-bold uppercase tracking-wider text-slate-400"><tr><th className="pb-3">#</th><th className="pb-3">Öğrenci</th><th className="pb-3"><Timer className="inline size-3.5" /> Pomodoro</th><th className="pb-3"><HeartHandshake className="inline size-3.5" /> Yardım</th><th className="pb-3">Toplam</th></tr></thead>
-                <tbody>{data.entries.map((e) => <tr key={e.id} className={`border-t border-slate-100 ${e.id === me.id ? "bg-amber-50/70" : ""}`} data-testid={`league-row-${e.rank}`}><td className="py-3 font-bold text-slate-500">{e.rank}</td><td className="py-3"><span className="flex items-center gap-2 font-semibold text-slate-800"><LevelIcon level={e.overall_level} />{e.name}<span className="text-xs font-normal text-slate-400">{e.class_name}</span></span></td><td className="py-3">{e.pomodoro_points}</td><td className="py-3">{e.help_points}</td><td className="py-3 font-bold text-slate-900" data-testid={`league-total-${e.rank}`}>{e.total}</td></tr>)}</tbody>
+              <table className="w-full min-w-[600px] text-left text-sm"><thead className="text-xs font-bold uppercase tracking-wider text-slate-400"><tr><th className="pb-3">#</th><th className="pb-3">Öğrenci</th><th className="pb-3"><Timer className="inline size-3.5" /> Pomodoro</th><th className="pb-3"><HeartHandshake className="inline size-3.5" /> Yardım</th><th className="pb-3"><Tent className="inline size-3.5" /> Kamp</th><th className="pb-3">Toplam</th></tr></thead>
+                <tbody>{data.entries.map((e) => <tr key={e.id} className={`border-t border-slate-100 ${e.id === me.id ? "bg-amber-50/70" : ""}`} data-testid={`league-row-${e.rank}`}><td className="py-3 font-bold text-slate-500">{e.rank}</td><td className="py-3"><span className="flex items-center gap-2 font-semibold text-slate-800"><LevelIcon level={e.overall_level} />{e.name}<span className="text-xs font-normal text-slate-400">{e.class_name}</span>{e.camp_master && <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-700" title="Kamp Ustası" data-testid={`league-camp-badge-${e.rank}`}><Tent className="size-3" /> Kamp Ustası</span>}</span></td><td className="py-3">{e.pomodoro_points}</td><td className="py-3">{e.help_points}</td><td className="py-3">{e.camp_points}</td><td className="py-3 font-bold text-slate-900" data-testid={`league-total-${e.rank}`}>{e.total}</td></tr>)}</tbody>
               </table>
             )}
           </CardContent>

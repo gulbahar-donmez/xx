@@ -2,7 +2,6 @@
 dashboard, pomodoro, profile, leaderboard and the AI coach."""
 
 import json
-import os
 import uuid
 from typing import AsyncIterator, Optional
 
@@ -12,11 +11,13 @@ from fastapi.responses import StreamingResponse
 from lib.auth import current_user, require_roles
 from lib.dates import today_iso
 from lib.db import db
-from lib.points import award
+from lib.ai import gemini_chat
+from lib.mistakes import record_answer
+from lib.points import CAMP_BONUS, CAMP_DAYS, award, pomodoro_streak
 from lib.levels import LEVEL_NAMES, POINTS, SUBJECTS, level_for, now_iso, public_user
 from lib.question_bank import BY_ID, QUESTIONS, placement_questions, public_question
 from models.academy import (
-    AnswersIn, ChatRequest, Dashboard, LeaderEntry, PlacementResult, PlacementTest, PomodoroIn, PomodoroOut,
+    AnswersIn, ChatRequest, Dashboard, LeaderEntry, PlacementResult, PlacementTest, PomodoroIn, PomodoroOut, PomodoroStreak,
     PracticeAnswerIn, PracticeAnswerOut, PracticeSet, Profile, ProfileUpdate, PublicUser, Recommendation,
 )
 
@@ -108,6 +109,7 @@ async def submit_placement(payload: AnswersIn, user: dict = Depends(student_only
             s["wrong"] += 1
             s["earned"] -= q["level"] / 4
             wrong_total += 1
+            await record_answer(user["id"], q, False)
         if answer != q["correct_index"]:
             review.append({"question_id": q["id"], "subject": q["subject"], "topic": q["topic"], "your_answer": answer, "correct_index": q["correct_index"], "explanation": q["explanation"]})
     subjects, scores, levels = [], {}, {}
@@ -163,6 +165,7 @@ async def answer_practice(payload: PracticeAnswerIn, user: dict = Depends(studen
     already = await db.practice_attempts.find_one({"user_id": user["id"], "question_id": q["id"], "correct": True})
     awarded = POINTS["practice"] if correct and not already else 0
     await db.practice_attempts.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "question_id": q["id"], "subject": q["subject"], "correct": correct, "created_at": now_iso()})
+    await record_answer(user["id"], q, correct)
     total = await add_points(user["id"], awarded, "practice") if awarded else user.get("points", 0)
     return {"correct": correct, "correct_index": q["correct_index"], "explanation": q["explanation"], "points_awarded": awarded, "total_points": total}
 
@@ -199,7 +202,20 @@ async def complete_pomodoro(payload: PomodoroIn, user: dict = Depends(current_us
     await db.pomodoros.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "minutes": payload.minutes, "subject": payload.subject, "day": today_iso(), "created_at": now_iso()})
     total = await add_points(user["id"], POINTS["pomodoro"], "pomodoro")
     count = await db.pomodoros.count_documents({"user_id": user["id"], "day": today_iso()})
-    return {"points_awarded": POINTS["pomodoro"], "total_points": total, "today_count": count}
+    streak = await pomodoro_streak(user["id"])
+    bonus = 0
+    if streak and streak % CAMP_DAYS == 0 and not await db.camp_awards.find_one({"user_id": user["id"], "day": today_iso()}):
+        await db.camp_awards.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "day": today_iso(), "streak": streak, "created_at": now_iso()})
+        bonus = CAMP_BONUS
+        total = await add_points(user["id"], bonus, "camp")
+    return {"points_awarded": POINTS["pomodoro"] + bonus, "total_points": total, "today_count": count, "streak": streak, "camp_bonus": bonus}
+
+
+@router.get("/pomodoro/streak", response_model=PomodoroStreak)
+async def get_streak(user: dict = Depends(current_user)):
+    return {"streak": await pomodoro_streak(user["id"]), "target": CAMP_DAYS, "bonus": CAMP_BONUS,
+            "today_done": bool(await db.pomodoros.find_one({"user_id": user["id"], "day": today_iso()})),
+            "camp_awards": await db.camp_awards.count_documents({"user_id": user["id"]})}
 
 
 # ---------- Profile & leaderboard ----------
@@ -223,7 +239,8 @@ async def get_profile(user: dict = Depends(current_user)):
     done = await db.assignments.count_documents({"completed_ids": uid})
     exams = await db.exam_results.count_documents({"user_id": uid})
     rank = await db.users.count_documents({"role": "student", "points": {"$gt": user.get("points", 0)}}) + 1
-    badges = []
+    camps = await db.camp_awards.count_documents({"user_id": uid})
+    badges = ["Kamp Ustası"] if camps else []
     if user.get("placement_done"):
         badges.append("Seviyesini keşfetti")
     if len(poms) >= 5:
@@ -234,7 +251,8 @@ async def get_profile(user: dict = Depends(current_user)):
         badges.append("Yardımsever arkadaş")
     if done >= 1:
         badges.append("Ödev disiplini")
-    stats = {"practice_solved": solved, "practice_correct": correct, "pomodoros": len(poms), "focus_minutes": sum(p["minutes"] for p in poms), "posts": posts, "answers": answers, "assignments_done": done, "exams": exams}
+    stats = {"practice_solved": solved, "practice_correct": correct, "pomodoros": len(poms), "focus_minutes": sum(p["minutes"] for p in poms), "posts": posts, "answers": answers, "assignments_done": done, "exams": exams,
+             "pomodoro_streak": await pomodoro_streak(uid), "camp_awards": camps}
     awards = await db.league_awards.find({"user_id": uid}, {"_id": 0, "medal": 1, "week": 1, "scope_label": 1}).sort("week", -1).to_list(50)
     medal_names = {"gold": "Altın", "silver": "Gümüş", "bronze": "Bronz"}
     medals = [f"{medal_names[a['medal']]} madalya · {a['week']} · {a['scope_label']}" for a in awards]
@@ -266,16 +284,12 @@ async def chat_events(payload: ChatRequest, user: dict) -> AsyncIterator[str]:
     session_id = payload.session_id or f"{user['id']}-coach"
     await db.chat_messages.insert_one({"session_id": session_id, "user_id": user["id"], "role": "user", "content": payload.message, "created_at": now_iso()})
     levels = ", ".join(f"{s}: {LEVEL_NAMES[l]}" for s, l in user.get("subject_levels", {}).items()) or "henüz belirlenmedi"
-    api_key = os.environ.get("GEMINI_API_KEY")
     text = ""
-    if api_key:
+    chat = gemini_chat(session_id, f"Sen AkademiAI'nin Türkçe YKS koçusun. Öğrenci: {user['name']}. Ders seviyeleri: {levels}. Konu anlatırken öğrencinin o dersteki seviyesine göre derinlik ayarla (Başlangıç: temel kavram ve basit örnek, Gelişen: kural + orta örnek, Yetkin/Uzman: ileri yorum ve yeni nesil soru). Türkiye Yüzyılı Maarif Modeli'ne uygun, bağlam temelli örnekler kullan. Sokratik ilerle, cevabı hemen verme, seviyeye uygun anlat, kısa ve cesaretlendirici ol. Yanıtını düz metin olarak yaz: Markdown (**, #) ve LaTeX ($) kullanma; matematiği Unicode ile yaz (x², √, ∘, ≤, π). Maddeleri '•' veya '1.' ile başlat.")
+    if chat:
         try:
-            from emergentintegrations.llm.chat import LlmChat, StreamDone, TextDelta, UserMessage
+            from emergentintegrations.llm.chat import StreamDone, TextDelta, UserMessage
 
-            chat = LlmChat(
-                api_key=api_key, session_id=session_id,
-                system_message=f"Sen AkademiAI'nin Türkçe YKS koçusun. Öğrenci: {user['name']}. Ders seviyeleri: {levels}. Konu anlatırken öğrencinin o dersteki seviyesine göre derinlik ayarla (Başlangıç: temel kavram ve basit örnek, Gelişen: kural + orta örnek, Yetkin/Uzman: ileri yorum ve yeni nesil soru). Türkiye Yüzyılı Maarif Modeli'ne uygun, bağlam temelli örnekler kullan. Sokratik ilerle, cevabı hemen verme, seviyeye uygun anlat, kısa ve cesaretlendirici ol. Yanıtını düz metin olarak yaz: Markdown (**, #) ve LaTeX ($) kullanma; matematiği Unicode ile yaz (x², √, ∘, ≤, π). Maddeleri '•' veya '1.' ile başlat.",
-            ).with_model("gemini", "gemini-3-flash-preview")
             async for event in chat.stream_message(UserMessage(text=payload.message)):
                 if isinstance(event, TextDelta):
                     text += event.content

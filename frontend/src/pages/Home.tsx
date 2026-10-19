@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { BarChart3, BookOpen, BookOpenCheck, BrainCircuit, Database, Sparkles, Trophy, ChevronRight, ClipboardList, GraduationCap, LayoutDashboard, Lock, LogOut, Menu, MessagesSquare, ShieldCheck, Target, Timer, UserRound, Video, X } from "lucide-react";
+import { BarChart3, BookOpen, BookOpenCheck, BrainCircuit, Database, Sparkles, Trophy, ChevronRight, ClipboardList, GraduationCap, LayoutDashboard, Lock, LogOut, Menu, MessagesSquare, NotebookPen, ShieldCheck, Target, Timer, UserRound, Video, X } from "lucide-react";
 import { endSession } from "@/lib/session";
 import { useMe } from "@/hooks/useMe";
 import type { PublicUser, Role } from "@/lib/types";
@@ -20,13 +20,15 @@ import NewGen from "@/components/views/NewGen";
 import Topics from "@/components/views/Topics";
 import League from "@/components/views/League";
 import QuestionBank from "@/components/views/QuestionBank";
+import Mistakes from "@/components/views/Mistakes";
 import { Toaster } from "@/components/ui/sonner";
 
-export type View = "dashboard" | "placement" | "practice" | "plan" | "exams" | "classroom" | "social" | "pomodoro" | "coach" | "profile" | "teacher" | "admin" | "newgen" | "topics" | "league" | "bank";
+export type View = "dashboard" | "placement" | "practice" | "plan" | "exams" | "classroom" | "social" | "pomodoro" | "coach" | "profile" | "teacher" | "admin" | "newgen" | "topics" | "league" | "bank" | "mistakes";
 
 const NAV: Record<Role, { id: View; label: string; icon: typeof LayoutDashboard }[]> = {
   student: [
     { id: "dashboard", label: "Panelim", icon: LayoutDashboard }, { id: "topics", label: "Konu kartları", icon: BookOpenCheck }, { id: "practice", label: "Seviyeme göre soru", icon: Target },
+    { id: "mistakes", label: "Yanlış defteri", icon: NotebookPen },
     { id: "newgen", label: "Yeni nesil sorular", icon: Sparkles }, { id: "league", label: "Haftalık lig", icon: Trophy },
     { id: "plan", label: "Ödev & plan", icon: ClipboardList }, { id: "exams", label: "Deneme analizi", icon: BarChart3 },
     { id: "classroom", label: "Canlı sınıf", icon: Video }, { id: "social", label: "Soru paylaşımı", icon: MessagesSquare },
@@ -115,6 +117,7 @@ function Shell({ me }: { me: PublicUser }) {
             {current === "topics" && <Topics me={me} />}
             {current === "league" && <League me={me} />}
             {current === "bank" && <QuestionBank />}
+            {current === "mistakes" && <Mistakes />}
           </main>
         </div>
       </div>

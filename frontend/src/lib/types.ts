@@ -57,6 +57,8 @@ export interface LeagueEntry {
   overall_level: number;
   pomodoro_points: number;
   help_points: number;
+  camp_points: number;
+  camp_master: boolean;
   total: number;
   rank: number;
   medal: Medal;
@@ -323,6 +325,8 @@ export interface PomodoroOut {
   points_awarded: number;
   total_points: number;
   today_count: number;
+  streak: number;
+  camp_bonus: number;
 }
 
 export interface ProfileStats {
@@ -334,6 +338,8 @@ export interface ProfileStats {
   answers: number;
   assignments_done: number;
   exams: number;
+  pomodoro_streak: number;
+  camp_awards: number;
 }
 
 export interface Profile {
@@ -360,4 +366,70 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+}
+
+// ---------- v4: mistake notebook, AI drafts, figure upload, camp streak ----------
+export interface MistakeItem {
+  question: QuestionOut;
+  correct_index: number;
+  explanation: string;
+  wrong_count: number;
+  last_wrong_at: string;
+  resolved: boolean;
+}
+
+export interface SubjectCount {
+  subject: string;
+  open: number;
+}
+
+export interface MistakeNotebook {
+  total: number;
+  open: number;
+  resolved: number;
+  by_subject: SubjectCount[];
+  items: MistakeItem[];
+}
+
+export interface WeeklyReview {
+  week: string;
+  created_at: string;
+  questions: QuestionOut[];
+  resolved_ids: string[];
+  total_open: number;
+}
+
+export interface QuestionGenerateIn {
+  subject: string;
+  topic: string;
+  level: number;
+  kind: "practice" | "new_gen";
+  notes: string;
+}
+
+// Mirrors QuestionIn (also the response of POST /questions/generate).
+export interface QuestionDraft {
+  subject: string;
+  topic: string;
+  level: number;
+  kind: "practice" | "new_gen";
+  context: string;
+  prompt: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+  source: string;
+  figure: string;
+}
+
+export interface FigureUploadOut {
+  url: string;
+}
+
+export interface PomodoroStreak {
+  streak: number;
+  target: number;
+  today_done: boolean;
+  camp_awards: number;
+  bonus: number;
 }

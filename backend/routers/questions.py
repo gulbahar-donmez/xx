@@ -1,18 +1,23 @@
 """Yeni nesil questions, teacher/admin question-bank management, topic cards and
 the weekly league (pomodoro + help points, class or platform scope)."""
 
+import json
+import logging
+import re
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from pydantic import ValidationError
 
 from lib.auth import current_user, require_roles
+from lib.ai import gemini_chat
 from lib.db import db
 from lib.levels import now_iso
 from lib.points import LEAGUE_REASONS, previous_week_key, week_key
 from lib.question_bank import public_question
 from lib.topic_cards import TOPIC_CARDS
-from models.academy import League, OkOut, QuestionAdmin, QuestionIn, QuestionOut, TopicCard
+from models.academy import FigureUploadOut, League, OkOut, QuestionAdmin, QuestionGenerateIn, QuestionIn, QuestionOut, TopicCard
 
 router = APIRouter(tags=["questions"])
 staff_only = require_roles("teacher", "admin")
@@ -65,6 +70,83 @@ async def create_question(payload: QuestionIn, user: dict = Depends(staff_only))
     return admin_view(doc)
 
 
+# ---------- AI question drafts (Gemini) ----------
+LEVEL_HINT = {1: "Başlangıç: tek adımlı, temel kavram", 2: "Gelişen: iki-üç adımlı, orta zorluk", 3: "Yetkin: çok adımlı, yorum ve çıkarım gerektiren"}
+
+
+def parse_draft(raw: str) -> dict:
+    match = re.search(r"\{.*\}", raw, re.S)
+    if not match:
+        raise ValueError("JSON bulunamadı")
+    return json.loads(match.group(0))
+
+
+@router.post("/questions/generate", response_model=QuestionIn)
+async def generate_question(payload: QuestionGenerateIn, user: dict = Depends(staff_only)):
+    from emergentintegrations.llm.chat import UserMessage
+
+    chat = gemini_chat(f"qgen-{uuid.uuid4().hex}", "Sen Türkiye Yüzyılı Maarif Modeli'ne (TYMM) uygun, özgün, bağlam temelli YKS soruları yazan uzman bir soru yazarısın. ÖSYM veya yayınevi sorularını kopyalama. Yalnızca geçerli JSON döndür.")
+    if not chat:
+        raise HTTPException(status_code=503, detail="Gemini anahtarı tanımlı değil")
+    style = "yeni nesil (gerçek hayat senaryosu, tablo veya veri yorumlama)" if payload.kind == "new_gen" else "kazanım odaklı pratik"
+    prompt = (
+        f"Ders: {payload.subject}. Konu: {payload.topic}. Seviye {payload.level} ({LEVEL_HINT[payload.level]}). Soru türü: {style}. "
+        f"Ek not: {payload.notes or 'yok'}.\nTürkçe tek bir çoktan seçmeli soru yaz. Matematiği Unicode ile yaz (x², √, π), LaTeX ve Markdown kullanma. "
+        'Şu JSON şemasını kullan: {"context": "10-1200 karakter bağlam/senaryo (tablo gerekiyorsa satırlarla)", "prompt": "soru kökü", '
+        '"options": ["A", "B", "C", "D", "E"], "correct_index": 0-4, "explanation": "adım adım kısa çözüm"}. Seçenekler harf içermesin, tek doğru cevap olsun.'
+    )
+    try:
+        data = parse_draft(await chat.send_message(UserMessage(text=prompt)))
+        return QuestionIn.model_validate({
+            "subject": payload.subject, "topic": payload.topic, "level": payload.level, "kind": payload.kind,
+            "context": data.get("context", ""), "prompt": data.get("prompt", ""), "options": [str(o).strip() for o in data.get("options", [])][:5],
+            "correct_index": data.get("correct_index", 0), "explanation": data.get("explanation", ""), "source": "AkademiAI · Gemini taslağı (öğretmen onaylı)", "figure": "",
+        })
+    except (ValueError, ValidationError) as exc:
+        logging.getLogger(__name__).warning("Gemini draft invalid: %s", exc)
+        raise HTTPException(status_code=502, detail="Gemini geçerli bir soru taslağı üretemedi, tekrar dene")
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Gemini draft failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Gemini şu an yanıt vermiyor, biraz sonra tekrar dene")
+
+
+# ---------- Figure upload (stored in Mongo, served same-origin) ----------
+MAX_FIGURE_BYTES = 2 * 1024 * 1024
+
+
+def sniff_image(data: bytes) -> str | None:
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
+@router.post("/questions/figure", response_model=FigureUploadOut)
+async def upload_figure(file: UploadFile = File(...), user: dict = Depends(staff_only)):
+    data = await file.read(MAX_FIGURE_BYTES + 1)
+    if len(data) > MAX_FIGURE_BYTES:
+        raise HTTPException(status_code=413, detail="Görsel en fazla 2 MB olabilir")
+    content_type = sniff_image(data)
+    if not content_type:
+        raise HTTPException(status_code=415, detail="Yalnızca PNG, JPG, WEBP veya GIF yükleyebilirsin")
+    figure_id = uuid.uuid4().hex
+    await db.figures.insert_one({"id": figure_id, "content_type": content_type, "data": data, "size": len(data), "name": file.filename or "", "created_by": user["id"], "created_at": now_iso()})
+    return {"url": f"/api/figures/{figure_id}"}
+
+
+@router.get("/figures/{figure_id}")
+async def get_figure(figure_id: str, user: dict = Depends(current_user)):
+    doc = await db.figures.find_one({"id": figure_id}, {"_id": 0, "data": 1, "content_type": 1})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Görsel bulunamadı")
+    return Response(content=bytes(doc["data"]), media_type=doc["content_type"], headers={"Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff"})
+
+
 @router.delete("/questions/{question_id}", response_model=OkOut)
 async def delete_question(question_id: str, user: dict = Depends(staff_only)):
     query = {"id": question_id, "origin": "teacher"}
@@ -84,12 +166,13 @@ async def standings(week: str, student_ids: list[str], students: dict) -> list[d
     ]).to_list(5000)
     totals: dict[str, dict] = {}
     for r in rows:
-        t = totals.setdefault(r["_id"]["user"], {"pomodoro": 0, "answer": 0})
+        t = totals.setdefault(r["_id"]["user"], {"pomodoro": 0, "answer": 0, "camp": 0})
         t[r["_id"]["reason"]] += r["sum"]
-    ranked = sorted(totals.items(), key=lambda kv: (-(kv[1]["pomodoro"] + kv[1]["answer"]), students[kv[0]]["name"]))
+    campers = set(await db.camp_awards.distinct("user_id", {"user_id": {"$in": student_ids}}))
+    ranked = sorted(totals.items(), key=lambda kv: (-sum(kv[1].values()), students[kv[0]]["name"]))
     return [{
         "id": uid, "name": students[uid]["name"], "class_name": students[uid].get("class_name", ""), "overall_level": students[uid].get("overall_level", 0),
-        "pomodoro_points": t["pomodoro"], "help_points": t["answer"], "total": t["pomodoro"] + t["answer"], "rank": i + 1, "medal": MEDALS[i] if i < 3 else "",
+        "pomodoro_points": t["pomodoro"], "help_points": t["answer"], "camp_points": t["camp"], "camp_master": uid in campers, "total": sum(t.values()), "rank": i + 1, "medal": MEDALS[i] if i < 3 else "",
     } for i, (uid, t) in enumerate(ranked)]
 
 

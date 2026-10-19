@@ -37,3 +37,9 @@ Türkçe YKS hazırlık platformu. Öğrenci kayıt olunca **zorunlu seviye tesp
 
 ## Collections
 users, questions, points_log, league_awards, placement_results, practice_attempts, pomodoros, assignments, classrooms, exam_results, posts, chat_messages — string uuid `id`, ISO tarih stringleri. Seed: `cd backend && python seed.py` (idempotent).
+
+## v4 additions
+18. **Yanlış defteri** (`/api/mistakes`, `/api/mistakes/review`, `lib/mistakes.record_answer`): seviye testi + pratik yanlışları `mistakes` koleksiyonuna (user+question) upsert edilir; sonra doğru çözülen soru `resolved=True` ("Öğrenildi"). Haftalık tekrar testi `mistake_reviews`'ta ISO hafta başına bir kez, en eski 10 açık yanlıştan dondurulur; cevaplar `/api/practice/answer` ile.
+19. **AI soru üretimi** (`POST /api/questions/generate`, öğretmen/admin): Gemini (`lib/ai.gemini_chat`) JSON taslak döner → `QuestionIn` ile doğrulanır (geçersizse 502, anahtar yoksa 503). UI'da önizleme, "Tek tıkla havuza ekle" (`POST /api/questions`) veya "Forma aktar".
+20. **Şekil yükleme** (`POST /api/questions/figure`, multipart, ≤2 MB, PNG/JPG/WEBP/GIF magic-byte kontrolü; SVG yok) → `figures` koleksiyonu, `GET /api/figures/{id}` (oturum gerekli). `QuestionIn.figure` artık `https://…` veya `/api/figures/<32hex>` kabul eder.
+21. **Kamp Ustası** (`lib/points.pomodoro_streak`, `GET /api/pomodoro/streak`): bugün (yoksa dün) biten ardışık pomodoro günleri. Seri 7'nin katına ulaştığı gün ilk pomodoroda `camp_awards` + `award(100, "camp")` (günde bir kez). "camp" lig nedenidir; lig satırında `camp_points`, `camp_master`; profilde "Kamp Ustası" rozeti, `pomodoro_streak`, `camp_awards`. Seed: Elif'e önceki 6 gün pomodoro + 4 Matematik yanlışı.

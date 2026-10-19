@@ -62,7 +62,7 @@ class QuestionIn(BaseModel):
     correct_index: int = Field(ge=0, le=4)
     explanation: str = Field(min_length=5, max_length=1500)
     source: str = Field(default="", max_length=200)
-    figure: str = Field(default="", max_length=500, pattern=r"^(https://\S+)?$")
+    figure: str = Field(default="", max_length=500, pattern=r"^(https://\S+|/api/figures/[a-f0-9]{32})?$")
 
 
 class QuestionAdmin(QuestionOut):
@@ -90,6 +90,8 @@ class LeagueEntry(BaseModel):
     overall_level: int
     pomodoro_points: int
     help_points: int
+    camp_points: int = 0
+    camp_master: bool = False
     total: int
     rank: int
     medal: str
@@ -412,6 +414,8 @@ class PomodoroOut(BaseModel):
     points_awarded: int
     total_points: int
     today_count: int
+    streak: int = 0
+    camp_bonus: int = 0
 
 
 class ProfileUpdate(BaseModel):
@@ -430,6 +434,8 @@ class ProfileStats(BaseModel):
     answers: int
     assignments_done: int
     exams: int
+    pomodoro_streak: int = 0
+    camp_awards: int = 0
 
 
 class Profile(BaseModel):
@@ -449,3 +455,54 @@ class ChatRequest(BaseModel):
 class AdminOverview(BaseModel):
     counts: Dict[str, int]
     users: List[PublicUser]
+
+
+# ---------- v4: mistake notebook, AI drafts, figure upload, camp streak ----------
+class MistakeItem(BaseModel):
+    question: QuestionOut
+    correct_index: int
+    explanation: str
+    wrong_count: int
+    last_wrong_at: str
+    resolved: bool
+
+
+class SubjectCount(BaseModel):
+    subject: str
+    open: int
+
+
+class MistakeNotebook(BaseModel):
+    total: int
+    open: int
+    resolved: int
+    by_subject: List[SubjectCount]
+    items: List[MistakeItem]
+
+
+class WeeklyReview(BaseModel):
+    week: str
+    created_at: str
+    questions: List[QuestionOut]
+    resolved_ids: List[str]
+    total_open: int
+
+
+class QuestionGenerateIn(BaseModel):
+    subject: str = Field(pattern="^(Matematik|Türkçe|Fizik|Kimya|Biyoloji)$")
+    topic: str = Field(min_length=2, max_length=80)
+    level: int = Field(ge=1, le=3)
+    kind: str = Field(default="new_gen", pattern="^(practice|new_gen)$")
+    notes: str = Field(default="", max_length=300)
+
+
+class FigureUploadOut(BaseModel):
+    url: str
+
+
+class PomodoroStreak(BaseModel):
+    streak: int
+    target: int
+    today_done: bool
+    camp_awards: int
+    bonus: int

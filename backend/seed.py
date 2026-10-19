@@ -64,6 +64,16 @@ async def main() -> None:
                   ("duru@akademi.ai", this_week, "answer", 45), ("duru@akademi.ai", this_week, "pomodoro", 100), ("mert@akademi.ai", last_week, "pomodoro", 125),
                   ("elif@akademi.ai", last_week, "answer", 60), ("duru@akademi.ai", last_week, "pomodoro", 150)]
         await db.points_log.insert_many([{"id": str(uuid.uuid4()), "user_id": ids[e], "amount": a, "reason": r, "week": w, "created_at": now_iso(), "seed": True} for e, w, r, a in sample])
+    elif_id = ids["elif@akademi.ai"]
+    if await db.pomodoros.count_documents({"user_id": elif_id, "seed": True}) == 0:  # 6-day streak: one more day → Kamp Ustası
+        today = date.fromisoformat(today_iso())
+        await db.pomodoros.insert_many([{"id": str(uuid.uuid4()), "user_id": elif_id, "minutes": 25, "subject": "Matematik", "day": (today - timedelta(days=d)).isoformat(), "created_at": now_iso(), "seed": True} for d in range(1, 7)])
+    if await db.mistakes.count_documents({"user_id": elif_id}) == 0:
+        from lib.mistakes import record_answer
+        from lib.question_bank import EXTRA
+
+        for q in [q for q in EXTRA if q["subject"] in ("Fizik", "Matematik")][:4]:
+            await record_answer(elif_id, q, False)
     print("Seed tamamlandı:", ", ".join(ids))
 
 

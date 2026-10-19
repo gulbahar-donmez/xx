@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Award, Medal, Save, Trophy } from "lucide-react";
+import { Award, Medal, Save, Tent, Trophy } from "lucide-react";
 import { MEDAL_STYLE } from "@/components/views/League";
 import { apiGet, apiPatch } from "@/lib/api";
 import { meKey } from "@/hooks/useMe";
@@ -16,7 +16,7 @@ export default function ProfileView({ me }: { me: PublicUser }) {
   const [form, setForm] = useState({ name: me.name, grade: me.grade, target: me.target, bio: me.bio });
   const save = useMutation({ mutationFn: () => apiPatch<PublicUser>("/profile", form), onSuccess: (u) => { queryClient.setQueryData(meKey, u); queryClient.invalidateQueries({ queryKey: ["profile"] }); toast.success("Profil güncellendi"); }, onError: (e) => toast.error(errorText(e, "Kaydedilemedi")) });
   const p = profile.isError ? undefined : profile.data;
-  const stats = p ? [["Çözülen soru", p.stats.practice_solved], ["Doğru", p.stats.practice_correct], ["Pomodoro", p.stats.pomodoros], ["Odak dakikası", p.stats.focus_minutes], ["Paylaşılan soru", p.stats.posts], ["Verilen yanıt", p.stats.answers], ["Biten ödev", p.stats.assignments_done], ["Deneme", p.stats.exams]] as const : [];
+  const stats = p ? [["Çözülen soru", p.stats.practice_solved], ["Doğru", p.stats.practice_correct], ["Pomodoro", p.stats.pomodoros], ["Odak dakikası", p.stats.focus_minutes], ["Paylaşılan soru", p.stats.posts], ["Verilen yanıt", p.stats.answers], ["Biten ödev", p.stats.assignments_done], ["Deneme", p.stats.exams], ["Pomodoro serisi", `${p.stats.pomodoro_streak} gün`], ["Tamamlanan kamp", p.stats.camp_awards]] as const : [];
   const field = (key: keyof typeof form, label: string) => <label className="block"><span className="mb-1.5 block text-xs font-bold text-slate-600">{label}</span><input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className={fieldClass} data-testid={`profile-${key}-input`} /></label>;
 
   return (
@@ -37,7 +37,7 @@ export default function ProfileView({ me }: { me: PublicUser }) {
             {me.bio && <p className="mt-6 text-sm leading-6 text-slate-300" data-testid="profile-bio">{me.bio}</p>}
             {p?.frame && <div className={`mt-6 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${MEDAL_STYLE[p.frame].chip}`} data-testid="profile-frame-label"><Medal className="size-3.5" /> {MEDAL_STYLE[p.frame].label} lig çerçevesi</div>}
             {(p?.medals.length ?? 0) > 0 && <div className="mt-3 space-y-1" data-testid="profile-medals">{p?.medals.map((m) => <div key={m} className="text-xs text-slate-300">• {m}</div>)}</div>}
-            <div className="mt-6 flex flex-wrap gap-2" data-testid="profile-badges">{(p?.badges ?? []).map((b) => <span key={b} className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-bold text-amber-300"><Award className="size-3.5" /> {b}</span>)}{p && !p.badges.length && <span className="text-xs text-slate-500">Rozetler pratik ve pomodoro ile açılır.</span>}</div>
+            <div className="mt-6 flex flex-wrap gap-2" data-testid="profile-badges">{(p?.badges ?? []).map((b) => b === "Kamp Ustası" ? <span key={b} className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-400 px-3 py-1 text-xs font-bold text-slate-950 shadow-[0_0_18px_rgba(251,146,60,.45)]" data-testid="profile-camp-badge"><Tent className="size-3.5" /> {b}</span> : <span key={b} className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-bold text-amber-300"><Award className="size-3.5" /> {b}</span>)}{p && !p.badges.length && <span className="text-xs text-slate-500">Rozetler pratik ve pomodoro ile açılır.</span>}</div>
           </CardContent>
         </Card>
         <div className="space-y-6">
