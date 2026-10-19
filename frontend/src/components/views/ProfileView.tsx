@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Award, Save, Trophy } from "lucide-react";
+import { Award, Medal, Save, Trophy } from "lucide-react";
+import { MEDAL_STYLE } from "@/components/views/League";
 import { apiGet, apiPatch } from "@/lib/api";
 import { meKey } from "@/hooks/useMe";
 import type { Profile, PublicUser } from "@/lib/types";
@@ -25,7 +26,7 @@ export default function ProfileView({ me }: { me: PublicUser }) {
         <Card className="border-0 bg-slate-900 text-white" data-testid="profile-card">
           <CardContent className="p-8">
             <div className="flex items-center gap-5">
-              <div className="relative"><div className="flex size-20 items-center justify-center rounded-3xl bg-amber-400 font-heading text-3xl font-bold text-slate-900" data-testid="profile-avatar">{me.name.split(" ").map((x) => x[0]).slice(0, 2).join("")}</div><LevelIcon level={me.overall_level} className="absolute -bottom-2 -right-2 size-8 rounded-xl ring-2 ring-slate-900" testId="profile-level-icon" /></div>
+              <div className="relative"><div className={`flex size-20 items-center justify-center rounded-3xl bg-amber-400 font-heading text-3xl font-bold text-slate-900 ${p?.frame ? MEDAL_STYLE[p.frame].ring : ""}`} data-testid="profile-avatar" data-frame={p?.frame || "none"}>{me.name.split(" ").map((x) => x[0]).slice(0, 2).join("")}</div><LevelIcon level={me.overall_level} className="absolute -bottom-2 -right-2 size-8 rounded-xl ring-2 ring-slate-900" testId="profile-level-icon" /></div>
               <div><div className="font-heading text-2xl font-bold" data-testid="profile-name">{me.name}</div><div className="text-sm text-slate-400">{me.grade} · {me.class_name || me.role}</div><div className="mt-1 text-sm text-amber-300">{me.target}</div></div>
             </div>
             <div className="mt-8 grid grid-cols-3 gap-3 text-center">
@@ -34,6 +35,8 @@ export default function ProfileView({ me }: { me: PublicUser }) {
               <div className="rounded-2xl bg-white/5 p-3"><div className="font-heading text-lg font-bold" data-testid="profile-level-name">{levelName(me.overall_level)}</div><div className="text-[11px] text-slate-400">Seviye</div></div>
             </div>
             {me.bio && <p className="mt-6 text-sm leading-6 text-slate-300" data-testid="profile-bio">{me.bio}</p>}
+            {p?.frame && <div className={`mt-6 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${MEDAL_STYLE[p.frame].chip}`} data-testid="profile-frame-label"><Medal className="size-3.5" /> {MEDAL_STYLE[p.frame].label} lig çerçevesi</div>}
+            {(p?.medals.length ?? 0) > 0 && <div className="mt-3 space-y-1" data-testid="profile-medals">{p?.medals.map((m) => <div key={m} className="text-xs text-slate-300">• {m}</div>)}</div>}
             <div className="mt-6 flex flex-wrap gap-2" data-testid="profile-badges">{(p?.badges ?? []).map((b) => <span key={b} className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1 text-xs font-bold text-amber-300"><Award className="size-3.5" /> {b}</span>)}{p && !p.badges.length && <span className="text-xs text-slate-500">Rozetler pratik ve pomodoro ile açılır.</span>}</div>
           </CardContent>
         </Card>

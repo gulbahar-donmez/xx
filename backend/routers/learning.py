@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from lib.auth import current_user, require_roles
 from lib.dates import today_iso
 from lib.db import db
+from lib.points import award
 from lib.levels import LEVEL_NAMES, POINTS, SUBJECTS, level_for, now_iso, public_user
 from lib.question_bank import BY_ID, QUESTIONS, placement_questions, public_question
 from models.academy import (
@@ -30,9 +31,8 @@ LEVEL_PLANS = {
 }
 
 
-async def add_points(user_id: str, amount: int) -> int:
-    doc = await db.users.find_one_and_update({"id": user_id}, {"$inc": {"points": amount}}, projection={"_id": 0, "points": 1}, return_document=True)
-    return doc["points"] if doc else 0
+async def add_points(user_id: str, amount: int, reason: str) -> int:
+    return await award(user_id, amount, reason)
 
 
 def exam_recommendation(exam: dict | None) -> list[dict]:
@@ -120,7 +120,8 @@ async def submit_placement(payload: AnswersIn, user: dict = Depends(student_only
     overall = level_for(overall_score)
     first_time = not user.get("placement_done")
     awarded = POINTS["placement"] if first_time else 0
-    await db.users.update_one({"id": user["id"]}, {"$set": {"placement_done": True, "overall_level": overall, "subject_levels": levels, "subject_scores": scores}, "$inc": {"points": awarded}})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"placement_done": True, "overall_level": overall, "subject_levels": levels, "subject_scores": scores}})
+    await award(user["id"], awarded, "placement")
     ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
     result = {
         "id": str(uuid.uuid4()), "score": overall_score, "net": round(correct_total - wrong_total / 4, 2),
@@ -148,21 +149,21 @@ async def get_practice(subject: Optional[str] = None, user: dict = Depends(stude
     subject = subject if subject in SUBJECTS else min(scores, key=scores.get)
     level = user.get("subject_levels", {}).get(subject, 1)
     band = {min(level, 3), min(level + 1, 3)}
-    pool = [q for q in QUESTIONS if q["subject"] == subject]
+    pool = await db.questions.find({"subject": subject, "kind": "practice", "placement": {"$ne": True}}, {"_id": 0}).sort([("level", 1), ("id", 1)]).to_list(500)
     chosen = [q for q in pool if q["level"] in band] or pool
     return {"subject": subject, "level": level, "level_name": LEVEL_NAMES[level], "questions": [public_question(q) for q in chosen]}
 
 
 @router.post("/practice/answer", response_model=PracticeAnswerOut)
 async def answer_practice(payload: PracticeAnswerIn, user: dict = Depends(student_only)):
-    q = BY_ID.get(payload.question_id)
+    q = await db.questions.find_one({"id": payload.question_id}, {"_id": 0}) or BY_ID.get(payload.question_id)
     if not q:
         raise HTTPException(status_code=404, detail="Soru bulunamadı")
     correct = payload.answer == q["correct_index"]
     already = await db.practice_attempts.find_one({"user_id": user["id"], "question_id": q["id"], "correct": True})
     awarded = POINTS["practice"] if correct and not already else 0
     await db.practice_attempts.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "question_id": q["id"], "subject": q["subject"], "correct": correct, "created_at": now_iso()})
-    total = await add_points(user["id"], awarded) if awarded else user.get("points", 0)
+    total = await add_points(user["id"], awarded, "practice") if awarded else user.get("points", 0)
     return {"correct": correct, "correct_index": q["correct_index"], "explanation": q["explanation"], "points_awarded": awarded, "total_points": total}
 
 
@@ -196,7 +197,7 @@ async def dashboard(user: dict = Depends(student_only)):
 @router.post("/pomodoro/complete", response_model=PomodoroOut)
 async def complete_pomodoro(payload: PomodoroIn, user: dict = Depends(current_user)):
     await db.pomodoros.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "minutes": payload.minutes, "subject": payload.subject, "day": today_iso(), "created_at": now_iso()})
-    total = await add_points(user["id"], POINTS["pomodoro"])
+    total = await add_points(user["id"], POINTS["pomodoro"], "pomodoro")
     count = await db.pomodoros.count_documents({"user_id": user["id"], "day": today_iso()})
     return {"points_awarded": POINTS["pomodoro"], "total_points": total, "today_count": count}
 
@@ -234,7 +235,11 @@ async def get_profile(user: dict = Depends(current_user)):
     if done >= 1:
         badges.append("Ödev disiplini")
     stats = {"practice_solved": solved, "practice_correct": correct, "pomodoros": len(poms), "focus_minutes": sum(p["minutes"] for p in poms), "posts": posts, "answers": answers, "assignments_done": done, "exams": exams}
-    return {"user": public_user(user), "stats": stats, "badges": badges, "rank": rank}
+    awards = await db.league_awards.find({"user_id": uid}, {"_id": 0, "medal": 1, "week": 1, "scope_label": 1}).sort("week", -1).to_list(50)
+    medal_names = {"gold": "Altın", "silver": "Gümüş", "bronze": "Bronz"}
+    medals = [f"{medal_names[a['medal']]} madalya · {a['week']} · {a['scope_label']}" for a in awards]
+    frame = next((m for m in ("gold", "silver", "bronze") if any(a["medal"] == m for a in awards)), "")
+    return {"user": public_user(user), "stats": stats, "badges": badges, "rank": rank, "medals": medals, "frame": frame}
 
 
 @router.patch("/profile", response_model=PublicUser)
@@ -269,7 +274,7 @@ async def chat_events(payload: ChatRequest, user: dict) -> AsyncIterator[str]:
 
             chat = LlmChat(
                 api_key=api_key, session_id=session_id,
-                system_message=f"Sen AkademiAI'nin Türkçe YKS koçusun. Öğrenci: {user['name']}. Ders seviyeleri: {levels}. Türkiye Yüzyılı Maarif Modeli'ne uygun, bağlam temelli örnekler kullan. Sokratik ilerle, cevabı hemen verme, seviyeye uygun anlat, kısa ve cesaretlendirici ol.",
+                system_message=f"Sen AkademiAI'nin Türkçe YKS koçusun. Öğrenci: {user['name']}. Ders seviyeleri: {levels}. Konu anlatırken öğrencinin o dersteki seviyesine göre derinlik ayarla (Başlangıç: temel kavram ve basit örnek, Gelişen: kural + orta örnek, Yetkin/Uzman: ileri yorum ve yeni nesil soru). Türkiye Yüzyılı Maarif Modeli'ne uygun, bağlam temelli örnekler kullan. Sokratik ilerle, cevabı hemen verme, seviyeye uygun anlat, kısa ve cesaretlendirici ol. Yanıtını düz metin olarak yaz: Markdown (**, #) ve LaTeX ($) kullanma; matematiği Unicode ile yaz (x², √, ∘, ≤, π). Maddeleri '•' veya '1.' ile başlat.",
             ).with_model("gemini", "gemini-3-flash-preview")
             async for event in chat.stream_message(UserMessage(text=payload.message)):
                 if isinstance(event, TextDelta):
@@ -277,7 +282,9 @@ async def chat_events(payload: ChatRequest, user: dict) -> AsyncIterator[str]:
                     yield f"data: {json.dumps({'type': 'delta', 'content': event.content}, ensure_ascii=False)}\n\n"
                 elif isinstance(event, StreamDone):
                     break
-        except Exception:
+        except Exception as exc:  # fall back to MOCK replies, but leave a trace for debugging
+            import logging
+            logging.getLogger(__name__).warning("Gemini chat failed: %s", exc)
             text = ""
     if not text:
         text = mock_reply(payload.message)

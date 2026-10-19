@@ -25,6 +25,49 @@ export interface QuestionOut {
   context: string;
   prompt: string;
   options: string[];
+  kind: "practice" | "new_gen";
+  source: string;
+  figure: string;
+}
+
+export interface QuestionAdmin extends QuestionOut {
+  correct_index: number;
+  explanation: string;
+  origin: "system" | "teacher";
+  created_by_name: string;
+}
+
+export interface TopicCard {
+  id: string;
+  subject: string;
+  level: number;
+  title: string;
+  summary: string;
+  points: string[];
+  example: string;
+  tip: string;
+}
+
+export type Medal = "gold" | "silver" | "bronze" | "";
+
+export interface LeagueEntry {
+  id: string;
+  name: string;
+  class_name: string;
+  overall_level: number;
+  pomodoro_points: number;
+  help_points: number;
+  total: number;
+  rank: number;
+  medal: Medal;
+}
+
+export interface League {
+  week: string;
+  scope: "class" | "all";
+  scope_label: string;
+  entries: LeagueEntry[];
+  last_week: LeagueEntry[];
 }
 
 export interface PlacementTest {
@@ -298,6 +341,8 @@ export interface Profile {
   stats: ProfileStats;
   badges: string[];
   rank: number;
+  medals: string[];
+  frame: Medal;
 }
 
 export interface AdminOverview {

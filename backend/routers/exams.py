@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from lib.auth import require_roles
 from lib.db import db
+from lib.points import award
 from lib.levels import LEVEL_NAMES, POINTS, level_for, now_iso
 from models.academy import ExamDistribution, ExamIn, ExamParse, ExamResult
 
@@ -195,7 +196,7 @@ async def save_exam(payload: ExamIn, user: dict = Depends(student_only)):
     doc = {"id": str(uuid.uuid4()), "user_id": user["id"], "name": payload.name, "exam_type": payload.exam_type, "total_questions": total_questions, "total_net": total_net,
            "estimated_score": round(min(500.0, 100 + total_net * coef), 1), "rows": rows, "weakest": weakest["subject"], "strongest": strongest["subject"], "advice": advice, "created_at": now_iso()}
     await db.exam_results.insert_one(doc)
-    await db.users.update_one({"id": user["id"]}, {"$inc": {"points": POINTS["exam"]}})
+    await award(user["id"], POINTS["exam"], "exam")
     doc.pop("_id", None)
     doc.pop("user_id")
     return doc

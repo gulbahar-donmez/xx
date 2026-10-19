@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lib.auth import current_user, require_roles
 from lib.db import db
+from lib.points import award
 from lib.levels import POINTS, author, now_iso, public_user
 from models.academy import AdminOverview, AnswerIn, Post, PostIn
 
@@ -30,7 +31,7 @@ async def list_posts(user: dict = Depends(current_user)):
 async def create_post(payload: PostIn, user: dict = Depends(current_user)):
     doc = {"id": str(uuid.uuid4()), "author_id": user["id"], "subject": payload.subject, "text": payload.text.strip(), "answers": [], "created_at": now_iso()}
     await db.posts.insert_one(doc)
-    await db.users.update_one({"id": user["id"]}, {"$inc": {"points": POINTS["post"]}})
+    await award(user["id"], POINTS["post"], "post")
     return (await hydrate([doc]))[0]
 
 
@@ -42,7 +43,7 @@ async def answer_post(post_id: str, payload: AnswerIn, user: dict = Depends(curr
     answer = {"id": str(uuid.uuid4()), "author_id": user["id"], "text": payload.text.strip(), "created_at": now_iso()}
     await db.posts.update_one({"id": post_id}, {"$push": {"answers": answer}})
     if post["author_id"] != user["id"]:
-        await db.users.update_one({"id": user["id"]}, {"$inc": {"points": POINTS["answer"]}})
+        await award(user["id"], POINTS["answer"], "answer")
     post["answers"].append(answer)
     return (await hydrate([post]))[0]
 

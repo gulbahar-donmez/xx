@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { BarChart3, BookOpen, BrainCircuit, ChevronRight, ClipboardList, GraduationCap, LayoutDashboard, Lock, LogOut, Menu, MessagesSquare, ShieldCheck, Target, Timer, UserRound, Video, X } from "lucide-react";
+import { BarChart3, BookOpen, BookOpenCheck, BrainCircuit, Database, Sparkles, Trophy, ChevronRight, ClipboardList, GraduationCap, LayoutDashboard, Lock, LogOut, Menu, MessagesSquare, ShieldCheck, Target, Timer, UserRound, Video, X } from "lucide-react";
 import { endSession } from "@/lib/session";
 import { useMe } from "@/hooks/useMe";
 import type { PublicUser, Role } from "@/lib/types";
@@ -16,24 +16,30 @@ import Pomodoro from "@/components/views/Pomodoro";
 import ProfileView from "@/components/views/ProfileView";
 import Coach from "@/components/views/Coach";
 import { AdminPanel, TeacherPanel } from "@/components/views/Panels";
+import NewGen from "@/components/views/NewGen";
+import Topics from "@/components/views/Topics";
+import League from "@/components/views/League";
+import QuestionBank from "@/components/views/QuestionBank";
 import { Toaster } from "@/components/ui/sonner";
 
-export type View = "dashboard" | "placement" | "practice" | "plan" | "exams" | "classroom" | "social" | "pomodoro" | "coach" | "profile" | "teacher" | "admin";
+export type View = "dashboard" | "placement" | "practice" | "plan" | "exams" | "classroom" | "social" | "pomodoro" | "coach" | "profile" | "teacher" | "admin" | "newgen" | "topics" | "league" | "bank";
 
 const NAV: Record<Role, { id: View; label: string; icon: typeof LayoutDashboard }[]> = {
   student: [
-    { id: "dashboard", label: "Panelim", icon: LayoutDashboard }, { id: "practice", label: "Seviyeme göre soru", icon: Target },
+    { id: "dashboard", label: "Panelim", icon: LayoutDashboard }, { id: "topics", label: "Konu kartları", icon: BookOpenCheck }, { id: "practice", label: "Seviyeme göre soru", icon: Target },
+    { id: "newgen", label: "Yeni nesil sorular", icon: Sparkles }, { id: "league", label: "Haftalık lig", icon: Trophy },
     { id: "plan", label: "Ödev & plan", icon: ClipboardList }, { id: "exams", label: "Deneme analizi", icon: BarChart3 },
     { id: "classroom", label: "Canlı sınıf", icon: Video }, { id: "social", label: "Soru paylaşımı", icon: MessagesSquare },
     { id: "pomodoro", label: "Pomodoro", icon: Timer }, { id: "coach", label: "AI koç", icon: BrainCircuit },
     { id: "placement", label: "Seviye testi", icon: BookOpen }, { id: "profile", label: "Profilim", icon: UserRound },
   ],
   teacher: [
-    { id: "teacher", label: "Öğretmen paneli", icon: ClipboardList }, { id: "classroom", label: "Canlı sınıf", icon: Video },
+    { id: "teacher", label: "Öğretmen paneli", icon: ClipboardList }, { id: "bank", label: "Soru havuzu", icon: Database }, { id: "classroom", label: "Canlı sınıf", icon: Video },
+    { id: "newgen", label: "Yeni nesil sorular", icon: Sparkles }, { id: "topics", label: "Konu kartları", icon: BookOpenCheck }, { id: "league", label: "Haftalık lig", icon: Trophy },
     { id: "social", label: "Soru paylaşımı", icon: MessagesSquare }, { id: "coach", label: "AI koç", icon: BrainCircuit }, { id: "profile", label: "Profilim", icon: UserRound },
   ],
   admin: [
-    { id: "admin", label: "Yönetici paneli", icon: ShieldCheck }, { id: "teacher", label: "Öğretmen araçları", icon: ClipboardList },
+    { id: "admin", label: "Yönetici paneli", icon: ShieldCheck }, { id: "bank", label: "Soru havuzu", icon: Database }, { id: "teacher", label: "Öğretmen araçları", icon: ClipboardList }, { id: "league", label: "Haftalık lig", icon: Trophy },
     { id: "classroom", label: "Canlı sınıflar", icon: Video }, { id: "social", label: "Soru paylaşımı", icon: MessagesSquare }, { id: "profile", label: "Profilim", icon: UserRound },
   ],
 };
@@ -105,6 +111,10 @@ function Shell({ me }: { me: PublicUser }) {
             {current === "profile" && <ProfileView me={me} />}
             {current === "teacher" && <TeacherPanel />}
             {current === "admin" && <AdminPanel />}
+            {current === "newgen" && <NewGen />}
+            {current === "topics" && <Topics me={me} />}
+            {current === "league" && <League me={me} />}
+            {current === "bank" && <QuestionBank />}
           </main>
         </div>
       </div>

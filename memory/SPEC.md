@@ -25,8 +25,15 @@ Türkçe YKS hazırlık platformu. Öğrenci kayıt olunca **zorunlu seviye tesp
 8. **Soru paylaşımı** (`/api/social/posts`, `/answers`) + `/api/leaderboard`: soru +5, başkasına yanıt +15; herkesin yanında seviye ikonu.
 9. **Pomodoro** (`/api/pomodoro/complete`): 25/50/1 dk preset, tamamlanınca +25 ve 5 dk mola.
 10. **Profil** (`/api/profile` GET/PATCH): seviye ikonu, puan, sıralama, istatistikler, rozetler.
-11. **AI koç** (`/api/chat/stream`, SSE): `GEMINI_API_KEY` varsa Gemini `gemini-3-flash-preview` (öğrencinin seviyeleri sistem mesajında), yoksa **MOCK** yanıtlar.
+11. **AI koç** (`/api/chat/stream`, SSE): `GEMINI_API_KEY` varsa Gemini `gemini-3-flash-preview` (öğrencinin seviyeleri sistem mesajında), yoksa **MOCK** yanıtlar. Anahtar kullanıcı tarafından sağlandı ve `.env`'de; yanıtlar düz metin + Unicode matematik (Markdown/LaTeX yok).
 12. **Admin** (`/api/admin/overview`): sayaçlar + kullanıcı/rol listesi.
 
+## v3 additions
+13. **Soru bankası Mongo'da** (`questions`): açılışta `sync_bank()` ile 99 sistem sorusu upsert edilir (15 seviye testi, 45 pratik = her ders×seviye 4 adet [`lib/question_bank_extra.py`], 39 yeni nesil; bunların 14'ü SVG şekilli [`lib/question_bank_figures.py`]). Sorular özgündür; ÖSYM/yayınevi soruları telif nedeniyle kopyalanmaz (kullanıcının yüklediği Çap PDF'i yalnızca tarz referansıdır).
+14. **Yeni nesil sorular** (`/api/questions/new-gen?subject=`): şekilli filtre, kaynak etiketi, resmî kaynak linkleri (ÖSYM çıkmış sorular, OGM Materyal, ÖDSGM). Cevap `/api/practice/answer` ile.
+15. **Soru havuzu yönetimi** (öğretmen/admin): `GET /api/questions/bank`, `POST /api/questions` (seviye 1-3, tür practice|new_gen, 4-5 seçenek, kaynak, isteğe bağlı https görsel URL), `DELETE /api/questions/{id}` (yalnızca öğretmen soruları; öğretmen yalnız kendi sorusunu siler).
+16. **Konu kartları** (`/api/topics?subject=&level=`, `lib/topic_cards.py`): ders×seviye 15 kart; pratik ekranında "Önce kısa özet".
+17. **Haftalık lig** (`/api/league?scope=class|all`): tüm puanlar `lib/points.award()` ile `points_log`'a ISO hafta anahtarıyla yazılır; lig yalnızca pomodoro + yanıt (yardım) puanlarını sayar. Geçen haftanın ilk 3'ü `league_awards`'a altın/gümüş/bronz olarak yazılır; profil `frame` ve `medals` döner.
+
 ## Collections
-users, placement_results, practice_attempts, pomodoros, assignments, classrooms, exam_results, posts, chat_messages — string uuid `id`, ISO tarih stringleri. Seed: `cd backend && python seed.py` (idempotent).
+users, questions, points_log, league_awards, placement_results, practice_attempts, pomodoros, assignments, classrooms, exam_results, posts, chat_messages — string uuid `id`, ISO tarih stringleri. Seed: `cd backend && python seed.py` (idempotent).

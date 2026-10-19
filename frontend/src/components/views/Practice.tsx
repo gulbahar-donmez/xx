@@ -5,7 +5,8 @@ import { Check, Lightbulb, RotateCcw, Target, X } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
 import { meKey } from "@/hooks/useMe";
 import type { PracticeAnswerOut, PracticeSet } from "@/lib/types";
-import { EmptyState, LevelBadge, PageHeader, SUBJECTS } from "@/components/common";
+import { EmptyState, LevelBadge, PageHeader, QuestionFigure, SUBJECTS } from "@/components/common";
+import { TopicCards } from "@/components/views/Topics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -36,6 +37,7 @@ export default function Practice({ initialSubject }: { initialSubject?: string }
         ))}
         {solved > 0 && <span className="ml-auto self-center text-sm font-bold text-slate-600" data-testid="practice-score">{correct} / {solved} doğru</span>}
       </div>
+      {set && <TopicCards subject={set.subject} level={set.level} compact />}
       {!set && <EmptyState icon={Target} title={practice.isPending ? "Sorular hazırlanıyor" : "Sorular yüklenemedi"} text="Bağlantı kurulduğunda seviyene uygun sorular burada görünecek." testId="practice-empty" />}
       <div className="grid gap-5">
         {set?.questions.map((q, qi) => {
@@ -45,6 +47,7 @@ export default function Practice({ initialSubject }: { initialSubject?: string }
               <CardContent className="p-6 sm:p-8">
                 <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-bold text-slate-500"><span className="rounded-full bg-slate-100 px-2.5 py-1">{q.topic}</span><span>Zorluk {"●".repeat(q.level)}{"○".repeat(3 - q.level)}</span></div>
                 <div className="mb-4 rounded-2xl border-l-4 border-amber-400 bg-amber-50/60 p-4 text-sm leading-7 text-slate-700">{q.context}</div>
+                <QuestionFigure figure={q.figure} testId={`practice-figure-${qi + 1}`} />
                 <h3 className="mb-5 font-heading text-lg font-semibold text-slate-900" data-testid={`practice-prompt-${qi + 1}`}>{q.prompt}</h3>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {q.options.map((option, oi) => {

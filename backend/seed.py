@@ -6,7 +6,14 @@ import uuid
 
 from lib.auth import hash_password
 from lib.db import db, ensure_indexes
+from datetime import date, timedelta
+
+from lib.dates import today_iso
 from lib.levels import level_for, now_iso
+from lib.points import week_key
+from lib.question_bank import sync_bank
+
+CLASSES = {"duru@akademi.ai": "12-B", "deniz@akademi.ai": "12-B"}
 
 SCORES = {
     "elif@akademi.ai": {"Matematik": 54, "Türkçe": 83, "Fizik": 38, "Kimya": 67, "Biyoloji": 92},
@@ -32,7 +39,7 @@ async def main() -> None:
         levels = {s: level_for(v) for s, v in scores.items()}
         doc = {
             "name": name, "email": email, "role": role, "password_hash": hash_password(password),
-            "grade": "12. sınıf" if role == "student" else "", "target": target, "class_name": "12-A" if role == "student" else "",
+            "grade": "12. sınıf" if role == "student" else "", "target": target, "class_name": CLASSES.get(email, "12-A") if role == "student" else "",
             "placement_done": bool(scores), "subject_scores": scores, "subject_levels": levels,
             "overall_level": level_for(round(sum(scores.values()) / len(scores))) if scores else 0,
         }
@@ -49,6 +56,14 @@ async def main() -> None:
              "answers": [{"id": str(uuid.uuid4()), "author_id": ids["duru@akademi.ai"], "text": "Her şeyi önce mole çevir: kütle ÷ mol kütlesi = mol, mol × 6,02·10²³ = tanecik. Ortadaki durak hep mol!", "created_at": now_iso()}]},
             {"id": str(uuid.uuid4()), "author_id": ids["elif@akademi.ai"], "subject": "Fizik", "text": "Düz aynada yaklaşınca görüntü ile aramdaki mesafe neden iki kat azalıyor?", "created_at": now_iso(), "answers": []},
         ])
+    await sync_bank()
+    if await db.points_log.count_documents({"seed": True}) == 0:
+        this_week = week_key()
+        last_week = week_key(date.fromisoformat(today_iso()) - timedelta(days=7))
+        sample = [("elif@akademi.ai", this_week, "pomodoro", 75), ("elif@akademi.ai", this_week, "answer", 30), ("mert@akademi.ai", this_week, "pomodoro", 50),
+                  ("duru@akademi.ai", this_week, "answer", 45), ("duru@akademi.ai", this_week, "pomodoro", 100), ("mert@akademi.ai", last_week, "pomodoro", 125),
+                  ("elif@akademi.ai", last_week, "answer", 60), ("duru@akademi.ai", last_week, "pomodoro", 150)]
+        await db.points_log.insert_many([{"id": str(uuid.uuid4()), "user_id": ids[e], "amount": a, "reason": r, "week": w, "created_at": now_iso(), "seed": True} for e, w, r, a in sample])
     print("Seed tamamlandı:", ", ".join(ids))
 
 

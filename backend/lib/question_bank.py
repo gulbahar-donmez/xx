@@ -161,11 +161,28 @@ QUESTIONS: list[dict] = [
      "explanation": "İnsülin, glikozun hücrelere alınmasını sağlayarak kan şekerini düşürür."},
 ]
 
-BY_ID = {q["id"]: q for q in QUESTIONS}
+for _q in QUESTIONS:
+    _q.setdefault("kind", "practice")
+    _q.setdefault("source", "AkademiAI özgün")
+
+from lib.question_bank_extra import EXTRA, NEW_GEN  # noqa: E402
+from lib.question_bank_figures import FIGURE_QUESTIONS  # noqa: E402
+
+ALL_STATIC = QUESTIONS + EXTRA + NEW_GEN + FIGURE_QUESTIONS
+BY_ID = {q["id"]: q for q in ALL_STATIC}
 
 
 def public_question(q: dict) -> dict:
-    return {k: q[k] for k in ("id", "subject", "topic", "level", "context", "prompt", "options")}
+    return {k: q.get(k, "") for k in ("id", "subject", "topic", "level", "context", "prompt", "options", "kind", "source", "figure")}
+
+
+async def sync_bank() -> None:
+    """Upsert the built-in questions into Mongo; teacher-added ones (origin=teacher) are untouched."""
+    from lib.db import db
+    from pymongo import UpdateOne
+
+    ops = [UpdateOne({"id": q["id"]}, {"$set": {**q, "origin": "system", "created_by": "", "created_by_name": "AkademiAI"}}, upsert=True) for q in ALL_STATIC]
+    await db.questions.bulk_write(ops)
 
 
 def placement_questions() -> list[dict]:

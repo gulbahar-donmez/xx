@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from lib.auth import current_user, require_roles
 from lib.db import db
+from lib.points import award
 from lib.levels import POINTS, now_iso
 from models.academy import (
     Assignment, AssignmentCompleteOut, AssignmentIn, ClassMessageIn, ClassroomDetail, ClassroomIn,
@@ -68,8 +69,8 @@ async def complete_assignment(assignment_id: str, user: dict = Depends(require_r
     if user["id"] in doc["completed_ids"]:
         return {"points_awarded": 0, "total_points": user.get("points", 0)}
     await db.assignments.update_one({"id": assignment_id}, {"$addToSet": {"completed_ids": user["id"]}})
-    updated = await db.users.find_one_and_update({"id": user["id"]}, {"$inc": {"points": POINTS["assignment"]}}, projection={"_id": 0, "points": 1}, return_document=True)
-    return {"points_awarded": POINTS["assignment"], "total_points": updated["points"]}
+    total = await award(user["id"], POINTS["assignment"], "assignment")
+    return {"points_awarded": POINTS["assignment"], "total_points": total}
 
 
 # ---------- Live classrooms ----------

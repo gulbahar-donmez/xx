@@ -69,4 +69,15 @@ export function errorText(error: unknown, fallback: string) {
   return typeof body?.detail === "string" ? body.detail : fallback;
 }
 
+// Question figures: trusted inline SVG from the system bank or an https image URL added by a teacher.
+export function QuestionFigure({ figure, testId }: { figure: string; testId?: string }) {
+  if (!figure) return null;
+  const src = figure.startsWith("<svg") ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(figure)}` : figure;
+  return (
+    <div className="mb-4 flex justify-center rounded-2xl border border-slate-200 bg-white p-4" data-testid={testId}>
+      <img src={src} alt="Soru şekli" loading="lazy" className="max-h-72 w-full max-w-md object-contain" />
+    </div>
+  );
+}
+
 export const fieldClass = "h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition-[border-color,box-shadow] focus:border-amber-400 focus:ring-3 focus:ring-amber-100";

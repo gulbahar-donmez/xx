@@ -27,6 +27,9 @@ INDEXES: dict[str, list[IndexModel]] = {
     "classrooms": [IndexModel([("id", ASCENDING)], name="id", unique=True), IndexModel([("code", ASCENDING), ("status", ASCENDING)], name="code_status"), IndexModel([("participants.id", ASCENDING)], name="participants")],
     "exam_results": [IndexModel([("user_id", ASCENDING), ("created_at", DESCENDING)], name="user_created")],
     "posts": [IndexModel([("id", ASCENDING)], name="id", unique=True), IndexModel([("created_at", DESCENDING)], name="created_desc")],
+    "questions": [IndexModel([("id", ASCENDING)], name="id", unique=True), IndexModel([("kind", ASCENDING), ("subject", ASCENDING), ("level", ASCENDING)], name="kind_subject_level")],
+    "points_log": [IndexModel([("week", ASCENDING), ("reason", ASCENDING), ("user_id", ASCENDING)], name="week_reason_user")],
+    "league_awards": [IndexModel([("week", ASCENDING), ("scope", ASCENDING), ("user_id", ASCENDING)], name="week_scope_user", unique=True)],
     "chat_messages": [IndexModel([("session_id", ASCENDING), ("created_at", ASCENDING)], name="session_created")],
 }
 

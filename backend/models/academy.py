@@ -46,6 +46,61 @@ class QuestionOut(BaseModel):
     context: str
     prompt: str
     options: List[str]
+    kind: str = "practice"
+    source: str = ""
+    figure: str = ""
+
+
+class QuestionIn(BaseModel):
+    subject: str = Field(pattern="^(Matematik|Türkçe|Fizik|Kimya|Biyoloji)$")
+    topic: str = Field(min_length=2, max_length=80)
+    level: int = Field(ge=1, le=3)
+    kind: str = Field(default="practice", pattern="^(practice|new_gen)$")
+    context: str = Field(min_length=10, max_length=3000)
+    prompt: str = Field(min_length=5, max_length=600)
+    options: List[str] = Field(min_length=4, max_length=5)
+    correct_index: int = Field(ge=0, le=4)
+    explanation: str = Field(min_length=5, max_length=1500)
+    source: str = Field(default="", max_length=200)
+    figure: str = Field(default="", max_length=500, pattern=r"^(https://\S+)?$")
+
+
+class QuestionAdmin(QuestionOut):
+    correct_index: int
+    explanation: str
+    origin: str
+    created_by_name: str
+
+
+class TopicCard(BaseModel):
+    id: str
+    subject: str
+    level: int
+    title: str
+    summary: str
+    points: List[str]
+    example: str
+    tip: str
+
+
+class LeagueEntry(BaseModel):
+    id: str
+    name: str
+    class_name: str
+    overall_level: int
+    pomodoro_points: int
+    help_points: int
+    total: int
+    rank: int
+    medal: str
+
+
+class League(BaseModel):
+    week: str
+    scope: str
+    scope_label: str
+    entries: List[LeagueEntry]
+    last_week: List[LeagueEntry]
 
 
 class PlacementTest(BaseModel):
@@ -382,6 +437,8 @@ class Profile(BaseModel):
     stats: ProfileStats
     badges: List[str]
     rank: int
+    medals: List[str] = Field(default_factory=list)
+    frame: str = ""
 
 
 class ChatRequest(BaseModel):

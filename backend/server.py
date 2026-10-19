@@ -20,6 +20,8 @@ from lib.db import client, db, ensure_indexes
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.index_task = asyncio.create_task(ensure_indexes())  # background: a big index build must not block boot
+    from lib.question_bank import sync_bank
+    await sync_bank()
     yield
     client.close()
 
@@ -54,8 +56,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-from routers import auth, exams, learning, social, teaching  # noqa: E402
+from routers import auth, exams, learning, questions, social, teaching  # noqa: E402
 
-for module in (auth, learning, teaching, exams, social):
+for module in (auth, learning, teaching, exams, social, questions):
     api_router.include_router(module.router)
 app.include_router(api_router)
